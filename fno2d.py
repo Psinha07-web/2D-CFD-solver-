@@ -12,10 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-# ------------------------------------------------------------------
 # Spectral convolution layer
-# ------------------------------------------------------------------
 
 class SpectralConv2d(nn.Module):
     """
@@ -28,11 +25,10 @@ class SpectralConv2d(nn.Module):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.modes1 = modes1  # Fourier modes to keep along dim 1
-        self.modes2 = modes2  # Fourier modes to keep along dim 2
+        self.modes1 = modes1  
+        self.modes2 = modes2  
 
         scale = 1.0 / (in_channels * out_channels)
-        # Complex weights for 4 quadrants of the FFT
         self.weights1 = nn.Parameter(
             scale * torch.randn(in_channels, out_channels, modes1, modes2, dtype=torch.cfloat))
         self.weights2 = nn.Parameter(
@@ -40,7 +36,6 @@ class SpectralConv2d(nn.Module):
 
     def _complex_mul2d(self, x, weights):
         """Batched complex matrix-vector multiplication in Fourier space."""
-        # x: (batch, in_ch, x, y)   weights: (in_ch, out_ch, x, y)
         return torch.einsum("bixy,ioxy->boxy", x, weights)
 
     def forward(self, x):
@@ -49,7 +44,7 @@ class SpectralConv2d(nn.Module):
         # FFT
         x_ft = torch.fft.rfft2(x)
 
-        # Multiply relevant Fourier modes
+       
         out_ft = torch.zeros(B, self.out_channels, Nx, Ny // 2 + 1,
                              dtype=torch.cfloat, device=x.device)
         out_ft[:, :, :self.modes1, :self.modes2] = \
@@ -59,11 +54,6 @@ class SpectralConv2d(nn.Module):
 
         # Inverse FFT
         return torch.fft.irfft2(out_ft, s=(Nx, Ny))
-
-
-# ------------------------------------------------------------------
-# Single FNO block
-# ------------------------------------------------------------------
 
 class FNOBlock2d(nn.Module):
     """
@@ -79,11 +69,6 @@ class FNOBlock2d(nn.Module):
 
     def forward(self, x):
         return F.gelu(self.norm(self.spectral(x) + self.bypass(x)))
-
-
-# ------------------------------------------------------------------
-# Full FNO-2D model
-# ------------------------------------------------------------------
 
 class FNO2D(nn.Module):
     """
@@ -110,22 +95,18 @@ class FNO2D(nn.Module):
         self.out_channels = out_channels
         self.width = width
 
-        # Lift input to latent space
-        self.lift = nn.Conv2d(in_channels + 2, width, kernel_size=1)  # +2 for grid coords
-
-        # FNO blocks
+      
+        self.lift = nn.Conv2d(in_channels + 2, width, kernel_size=1) 
         self.blocks = nn.ModuleList([
             FNOBlock2d(width, modes1, modes2) for _ in range(n_layers)
         ])
 
-        # Project back to output
         self.proj = nn.Sequential(
             nn.Conv2d(width, width * 2, kernel_size=1),
             nn.GELU(),
             nn.Conv2d(width * 2, out_channels, kernel_size=1)
         )
 
-        # Grid coordinates (registered as buffer, device-portable)
         self._grid_cache = {}
 
     def _get_grid(self, Nx, Ny, device):
@@ -145,13 +126,8 @@ class FNO2D(nn.Module):
         B, C, Nx, Ny = x.shape
         grid = self._get_grid(Nx, Ny, x.device).unsqueeze(0).expand(B, -1, -1, -1)
 
-        # Concatenate spatial coordinates
         x = torch.cat([x, grid], dim=1)  # (B, C+2, Nx, Ny)
-
-        # Lift
         x = self.lift(x)
-
-        # FNO blocks
         for block in self.blocks:
             x = block(x)
 
@@ -160,11 +136,6 @@ class FNO2D(nn.Module):
 
     def count_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
-
-
-# ------------------------------------------------------------------
-# FNO with temporal rollout (multi-step prediction)
-# ------------------------------------------------------------------
 
 class FNO2DRollout(FNO2D):
     """
