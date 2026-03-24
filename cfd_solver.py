@@ -37,12 +37,11 @@ class CFDSolver2D:
         self.v = np.zeros((Nx, Ny + 1))      # y-velocity
         self.p = np.zeros((Nx, Ny))          # pressure
 
-        # Pre-build Poisson matrix for pressure
+       
         self._build_poisson_matrix()
 
-    # ------------------------------------------------------------------
+
     # Poisson matrix (Laplacian with Neumann BCs on all walls)
-    # ------------------------------------------------------------------
 
     def _build_poisson_matrix(self):
         N = self.Nx * self.Ny
@@ -89,28 +88,16 @@ class CFDSolver2D:
         A[0, 0] = 1.0
         self.A_poisson = A
 
-    # ------------------------------------------------------------------
     # Boundary conditions (lid-driven cavity default)
-    # ------------------------------------------------------------------
-
+ 
     def apply_boundary_conditions(self, u_lid=1.0):
         """Lid-driven cavity: top wall moves at u_lid, all others no-slip."""
         Nx, Ny = self.Nx, self.Ny
-
-        # Left wall (i=0): u=0
         self.u[0, :] = 0.0
-        # Right wall (i=Nx): u=0
         self.u[Nx, :] = 0.0
-        # Bottom wall (j=0): v=0, u ghost
         self.v[:, 0] = 0.0
-        # Top wall (j=Ny): v=0, u=u_lid (ghost cell average)
         self.v[:, Ny] = 0.0
-        # Top lid: u at j=Ny-1 ghost → u_avg = u_lid
-        self.u[:, Ny - 1] = 2 * u_lid - self.u[:, Ny - 2]  # ghost extrapolation
-
-    # ------------------------------------------------------------------
-    # Advection (semi-Lagrangian, unconditionally stable)
-    # ------------------------------------------------------------------
+        self.u[:, Ny - 1] = 2 * u_lid - self.u[:, Ny - 2] 
 
     def _interp_u(self, x, y):
         """Bilinear interpolation of u at arbitrary (x, y)."""
@@ -171,9 +158,7 @@ class CFDSolver2D:
         self.u = u_new
         self.v = v_new
 
-    # ------------------------------------------------------------------
-    # Diffusion (explicit central differences)
-    # ------------------------------------------------------------------
+    # Diffusion (explicit central differences
 
     def diffuse(self):
         nu, dt, dx, dy = self.nu, self.dt, self.dx, self.dy
@@ -197,10 +182,7 @@ class CFDSolver2D:
         self.u = u_new
         self.v = v_new
 
-    # ------------------------------------------------------------------
     # Pressure projection
-    # ------------------------------------------------------------------
-
     def pressure_project(self):
         Nx, Ny, dx, dy, dt = self.Nx, self.Ny, self.dx, self.dy, self.dt
 
@@ -217,11 +199,9 @@ class CFDSolver2D:
 
         # Correct velocity
         self.u[1:Nx, :] -= dt * (self.p[1:Nx, :] - self.p[0:Nx - 1, :]) / dx
-        self.v[:, 1:Ny] -= dt * (self.p[:, 1:Ny] - self.p[:, 0:Ny - 1]) / dy
-
-    # ------------------------------------------------------------------
+        self.v[:, 1:Ny] -= dt * (self.p[:, 1:Ny] - self.p[:, 0:Ny - 1]) / dy 
+        
     # Derived quantities
-    # ------------------------------------------------------------------
 
     def vorticity(self):
         """Vorticity w = dv/dx - du/dy at cell centers."""
@@ -247,9 +227,7 @@ class CFDSolver2D:
         vc = 0.5 * (self.v[:, 0:Ny] + self.v[:, 1:Ny + 1])
         return uc, vc
 
-    # ------------------------------------------------------------------
     # Single time step
-    # ------------------------------------------------------------------
 
     def step(self, u_lid=1.0):
         self.apply_boundary_conditions(u_lid)
@@ -259,9 +237,8 @@ class CFDSolver2D:
         self.pressure_project()
         self.apply_boundary_conditions(u_lid)
 
-    # ------------------------------------------------------------------
     # Run simulation and collect snapshots
-    # ------------------------------------------------------------------
+  
 
     def run(self, n_steps=500, snapshot_every=10, u_lid=1.0):
         """
@@ -288,10 +265,7 @@ class CFDSolver2D:
             snapshots[k] = np.array(snapshots[k])  # (T, Nx, Ny)
         return snapshots
 
-
-# ------------------------------------------------------------------
 # Save / load helpers
-# ------------------------------------------------------------------
 
 def save_snapshots_hdf5(snapshots, path, metadata=None):
     os.makedirs(os.path.dirname(path), exist_ok=True)
