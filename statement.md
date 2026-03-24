@@ -39,4 +39,4 @@ journey. It reflects my initiative to go beyond theoretical study, apply
 concepts practically, and explore emerging technologies relevant to
 aerospace engineering. I believe it is a meaningful addition to my
 academic profile and a strong foundation for further work in simulation
-and data-driven engineering methods.
+and data-driven engineering methods. 
