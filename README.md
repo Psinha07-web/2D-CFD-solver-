@@ -2,11 +2,7 @@ A complete pipeline for simulating 2D incompressible fluid flow with a classical
 Navier-Stokes solver, then training a Fourier Neural Operator (FNO) to predict
 future flow states at a fraction of the compute cost.
 
----
-
 ## Project structure
-
-```
 cfd_fno/
 ├── main.py               # End-to-end pipeline entry point
 ├── train.py              # FNO training loop + checkpointing
@@ -37,7 +33,6 @@ CUDA is optional but strongly recommended for training.
 
 ```bash
 python main.py --mode generate
-```
 
 Runs the lid-driven cavity solver at Re=400 for 2000 timesteps, saving snapshots
 of u, v, p, vorticity, and speed to `data/snapshots.h5`.
